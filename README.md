@@ -86,6 +86,9 @@ Feel free to reach out to me via [email](dinesh.bazgain@gmail.com) or open an is
 
 ---
 
-### Happy coding and converting!!!
+## Demo Images
 
-![Demo image of the project](assets/images/demo_image.png)
+![Demo image of the project](assets/images/demo1.png)
+![Demo image of the project](assets/images/demo2.png)
+
+### Happy coding and converting!!!
