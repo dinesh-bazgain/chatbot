@@ -40,7 +40,7 @@ This is a Streamlit-powered AI chatbot that allows users to:
 
 ### How to Run
 
-- Clone the repo: => git clone git@github.com:dinesh-bazgain/chatbot.git
+- Clone the repo: => git clone https://github.com/dinesh-bazgain/chatbot.git
 
 ### Set up environment
 
