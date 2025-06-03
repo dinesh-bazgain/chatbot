@@ -2,7 +2,7 @@
 
 This is a Streamlit-powered AI chatbot that allows users to:
 - Ask questions about uploaded PDF documents
-- Book appointments using natural language (e.g. "next Tuesday")
+- Book appointments using natural language (e.g., "next Tuesday")
 - Provide their contact information conversationally
 - Store all collected info in a CSV for admin access
 
@@ -46,10 +46,10 @@ This is a Streamlit-powered AI chatbot that allows users to:
 
 - Create a virtual environment for the project.
 - pip install -r requirements.txt
-- You'll also need to download the Ollama and run locally. 
-    bash=> ollama serve
+- You'll also need to download the (https://ollama.com/)[Ollama] and run it locally. 
+    => ollama serve
 - Run the app.
-    bash=> streamlit run app.py
+    => streamlit run app.py
 
 ### How it works
 - Upload one or more PDF files
@@ -58,7 +58,7 @@ This is a Streamlit-powered AI chatbot that allows users to:
 - Ask natural language questions and get responses from your docs using ChatOllama and ConversationalRetrievalChain
 
 ### Contact Info Collection
-- If the user types phrases like "call me", "book appointment", or "contact me", the bot triggers a contact flow
+- If the user types phrases like "call me", "book an appointment", or "contact me", the bot triggers a contact flow
 - Step-by-step form inside chat:
     Name
     Email (with regex validation)
