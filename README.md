@@ -46,7 +46,7 @@ This is a Streamlit-powered AI chatbot that allows users to:
 
 - Create a virtual environment for the project.
 - pip install -r requirements.txt
-- You'll also need to download the (https://ollama.com/)[Ollama] and run it locally. 
+- You'll also need to download the [Ollama](https://ollama.com/) and run it locally. 
     => ollama serve
 - Run the app.
     => streamlit run app.py
