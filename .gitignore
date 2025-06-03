@@ -8,6 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+contact_data.csv
+.DS_Store
 build/
 develop-eggs/
 dist/

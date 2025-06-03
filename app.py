@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.embeddings import SentenceTransformerEmbeddings
@@ -9,7 +8,12 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 import re
 import dateparser
+import datetime
+from dateutil.relativedelta import relativedelta
 from htmltemplates import css, user_template, bot_template
+import pandas as pd
+import os
+
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -51,7 +55,13 @@ def validate_phone(phone: str) -> bool:
     return re.match(r"^\+?\d{7,15}$", phone) is not None
 
 def extract_date(text):
-    parsed_date = dateparser.parse(text)
+    """Parse natural language date and return in YYYY-MM-DD format"""
+    settings = {
+        'PREFER_DATES_FROM': 'future',
+        'RELATIVE_BASE': datetime.datetime.now()
+    }
+    parsed_date = dateparser.parse(text, settings=settings)
+    
     if parsed_date:
         return parsed_date.strftime('%Y-%m-%d')
     return None
@@ -61,10 +71,19 @@ def start_contact_flow():
     st.session_state.contact_info = {}
     st.session_state.chat_history.append({"role": "bot", "content": "Sure! What's your full name?"})
 
+def save_contact_info(info):
+    file_path = "contact_data.csv"
+    df = pd.DataFrame([info])
+    if os.path.exists(file_path):
+        df.to_csv(file_path, mode='a', header=False, index=False)
+    else:
+        df.to_csv(file_path, index=False)
+
+
 def handle_userinput(user_question):
     user_question = user_question.strip()
     if not user_question:
-        return  # ignore empty input
+        return
     
     # Add user message to chat history
     st.session_state.chat_history.append({"role": "user", "content": user_question})
@@ -93,17 +112,35 @@ def handle_userinput(user_question):
         elif step == "phone":
             if validate_phone(user_question):
                 info['phone'] = user_question
-                st.session_state.contact_step = None  # End of flow
-                bot_msg = (f"Awesome! We'll contact you soon, {info['name']} at {info['email']} or {info['phone']}.")
+                st.session_state.contact_step = "date"
+                bot_msg = "Perfect! When should we contact you?"
                 st.session_state.chat_history.append({"role": "bot", "content": bot_msg})
-                # You can do something with info here (save, email, etc)
             else:
                 bot_msg = "That phone number doesn't look right. Please try again."
+                st.session_state.chat_history.append({"role": "bot", "content": bot_msg})
+        
+        # NEW STEP: Date collection
+        elif step == "date":
+            preferred_date = extract_date(user_question)
+            if preferred_date:
+                st.session_state.contact_step = None
+                bot_msg = (f"Awesome! We'll contact you on {preferred_date}, {info['name']} "
+                          f"at {info['email']} or {info['phone']}.")
+                st.session_state.chat_history.append({"role": "bot", "content": bot_msg})
+                st.session_state.contact_info['date'] = preferred_date
+                if preferred_date:
+                    info['date'] = preferred_date
+                    save_contact_info(info)
+
+            else:
+                bot_msg = "Sorry, I didn't understand that date. Please try again (e.g., 'tomorrow', 'next Tuesday')"
                 st.session_state.chat_history.append({"role": "bot", "content": bot_msg})
 
     else:
         # Normal Q&A with PDFs
-        if "call me" in user_question.lower():
+        if "call me" in user_question.lower() or "contact me" in user_question.lower():
+            start_contact_flow()
+        elif "appointment" in user_question.lower() or "book" in user_question.lower():
             start_contact_flow()
         else:
             # Make sure conversation chain is ready
@@ -113,17 +150,7 @@ def handle_userinput(user_question):
                 response = st.session_state.conversation({'question': user_question})
                 bot_reply = response['answer']
                 st.session_state.chat_history.append({"role": "bot", "content": bot_reply})
-
-    
-    for i, message in enumerate(st.session_state.chat_history):
-        if message["role"] == "user":
-            st.write(user_template.replace("{{ question }}", message["content"]), unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace("{{ answer }}", message["content"]), unsafe_allow_html=True)
-
-
 def main():
-    load_dotenv()
     st.set_page_config(page_title="Chatbot", page_icon="🤖")
     st.write(css, unsafe_allow_html=True)
 
@@ -142,18 +169,25 @@ def main():
     st.header("Chatbot")
 
     with st.form(key='chat_form', clear_on_submit=True):
-        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         user_question = st.text_input(
-            "Ask questions or type 'call me' to request contact:",
+            "Ask questions or say 'call me' to request contact:",
             key="user_input",
             placeholder="Type your message here...",
             label_visibility="collapsed"
         )
         submitted = st.form_submit_button("Send")
-        st.markdown('</div>', unsafe_allow_html=True)
     
     if submitted and user_question.strip():
         handle_userinput(user_question.strip())
+
+    # Display chat history container
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.chat_history:
+            if message["role"] == "user":
+                st.write(user_template.replace("{{ question }}", message["content"]), unsafe_allow_html=True)
+            else:
+                st.write(bot_template.replace("{{ answer }}", message["content"]), unsafe_allow_html=True)
 
     with st.sidebar:
         st.subheader("Your Documents")
@@ -168,6 +202,11 @@ def main():
                     vectorStore = get_vectorStore(text_chunks)
                     st.session_state.conversation = get_conversation_chain(vectorStore)
                     st.success("Documents processed! You can now ask questions.")
+        
+        if st.session_state.contact_info:
+            st.subheader("Collected Contact Info")
+            for key, value in st.session_state.contact_info.items():
+                st.write(f"{key.title()}: {value}")
 
 if __name__ == '__main__':
     main()
